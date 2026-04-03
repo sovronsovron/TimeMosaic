@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>TimeScore Prototype v6</title>
+<style>
+:root{
+  --bg:#f6f4ef; --card:#fff; --line:#d8d4c9; --text:#222; --sub:#666;
+  --sleep:#111111; --work:#6f42c1; --social:#f28cc8; --move:#72d6ff; --live:#7bc96f;
+  --prep:#e74c3c; --buffer:#f3d64e; --plain:#ffffff; --plain-line:#cfcfcf;
+  --selected:#ff9f1c; --tile:20px; --gap:2px; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:760px;margin:0 auto;padding:12px 12px 120px;display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+h1,h2,h3,p{margin:0} h1{font-size:24px} h2{font-size:17px;margin-bottom:8px} h3{font-size:14px;margin-bottom:8px}
+.sub{color:var(--sub);line-height:1.55;margin-top:6px;font-size:13px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{border:1px solid var(--line);border-radius:999px;background:#faf9f6;padding:6px 10px;font-size:13px;white-space:nowrap}
+.date-card{display:grid;gap:10px}
+.date-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.date-main{display:grid;gap:4px}
+.date-label{font-size:12px;color:var(--sub);letter-spacing:.03em}
+.date-value{font-size:28px;font-weight:700;line-height:1}
+.date-mode{font-size:13px;color:var(--sub)}
+.date-controls{display:grid;grid-template-columns:52px 1fr 52px;gap:8px}
+.input, textarea, select{
+  width:100%; border:1px solid var(--line); border-radius:14px; padding:12px;
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#fbfaf7; color:var(--text);
+}
+textarea{min-height:148px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:1px solid var(--line);border-radius:12px;background:white;padding:10px;text-align:center;font-size:14px}
+.btn.primary{background:#222;color:#fff;border-color:#222}
+.btn.active{box-shadow: inset 0 0 0 2px var(--selected)}
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{border:1px solid var(--line);border-radius:14px;background:#fbfaf7;padding:10px}
+.stat .k{font-size:12px;color:var(--sub)} .stat .v{font-size:22px;font-weight:700;margin-top:4px}
+.board-shell{display:grid;grid-template-columns:44px auto;gap:8px;align-items:start;overflow:auto}
+.labels{display:grid;grid-template-rows:repeat(24,var(--tile));gap:var(--gap);padding-top:var(--gap)}
+.label{font-size:11px;color:var(--sub);display:flex;align-items:center;justify-content:flex-end}
+.board{display:grid;grid-template-columns:repeat(10,var(--tile));grid-template-rows:repeat(24,var(--tile));gap:var(--gap);padding:var(--gap);background:#ece7dc;border-radius:14px;width:max-content;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);touch-action:none}
+.tile{width:var(--tile);height:var(--tile);border-radius:3px;border:1px solid rgba(0,0,0,.08);background:#fff}
+.sleep{background:var(--sleep);border-color:#000}.work{background:var(--work);border-color:rgba(0,0,0,.18)}.social{background:var(--social)}.move{background:var(--move)}.live{background:var(--live)}.prep{background:var(--prep);border-color:rgba(0,0,0,.18)}.buffer{background:var(--buffer)}.plain{background:var(--plain);border:1px dashed var(--plain-line)}
+.selected{outline:2px solid var(--selected);outline-offset:1px}
+.sel-start{border-top-left-radius:7px;border-bottom-left-radius:7px}.sel-end{border-top-right-radius:7px;border-bottom-right-radius:7px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;background:#fbfaf7;padding:8px 10px;font-size:13px}
+.sw{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.12);flex:0 0 auto}
+.plain-sw{background:#fff;border-style:dashed}
+.helper{font-size:12px;color:var(--sub);line-height:1.5;margin-top:8px}
+.toolbar{position:sticky;bottom:0;background:rgba(246,244,239,.96);backdrop-filter:blur(10px);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid rgba(0,0,0,.05)}
+.toolbar-inner{max-width:760px;margin:0 auto;padding:0 12px;display:grid;gap:6px}
+.quick-row{display:grid;grid-template-columns:1.2fr 1fr 1fr 48px;gap:8px}
+.current-cat{display:flex;align-items:center;justify-content:center;gap:6px}
+.icon-btn{display:flex;align-items:center;justify-content:center;font-size:18px}
+.menu-note{font-size:11px;color:var(--sub);text-align:right;padding-right:2px}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(246,244,239,.92);backdrop-filter:blur(8px);padding-top:6px}
+.sheet-card{max-width:760px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:22px 22px 0 0;padding:10px 12px 18px;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+.handle{width:42px;height:5px;border-radius:999px;background:#d7d2c8;margin:0 auto 10px}
+.sheet-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.sheet-title{font-size:16px;font-weight:700}.sheet-meta{font-size:12px;color:var(--sub);line-height:1.5}
+.tag{border:1px solid var(--line);border-radius:999px;padding:5px 8px;font-size:12px;background:#faf9f6;white-space:nowrap}
+.hidden{display:none}
+.palette-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);border-radius:12px;background:white;padding:10px 8px;font-size:13px;white-space:nowrap;min-height:42px}
+.cat-btn.active{box-shadow:inset 0 0 0 2px var(--selected)}
+.grow-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.grow-box{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fbfaf7}
+.grow-title{font-size:12px;color:var(--sub);margin-bottom:8px}.grow-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1>TimeScore Prototype v6</h1>
+    <p class="sub">日付変更、予定 / 結果切替、自動保存を入れた版です。Safari で消えやすい問題に対して、まずは localStorage に保存して復元します。</p>
+    <div class="pills">
+      <span class="pill">6:00始まり</span>
+      <span class="pill">テキスト仮置き + 手修正</span>
+      <span class="pill">自動保存</span>
+    </div>
+  </div>
+
+  <div class="card date-card">
+    <div class="date-top">
+      <div class="date-main">
+        <div class="date-label">日付</div>
+        <div class="date-value" id="dateValue">2026/4/2（木）</div>
+        <div class="date-mode" id="modeValue">予定盤面</div>
+      </div>
+      <div class="pill" id="saveStatus">自動保存</div>
+    </div>
+    <div class="date-controls">
+      <div class="btn" id="prevDateBtn">←</div>
+      <input class="input" id="dateInput" type="date" value="2026-04-02">
+      <div class="btn" id="nextDateBtn">→</div>
+    </div>
+    <div class="mode-row">
+      <div class="btn active" id="planBtn">予定</div>
+      <div class="btn" id="resultBtn">結果</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>予定テキストを貼る</h2>
+    <textarea id="input">07:04-08:36 東京農業大学へ行く
+09:00-11:00 東京農業大学　入学式
+11:03-12:26 船橋駅へ行く
+13:00-17:00 バイエルンストゥーベ 練習
+17:15-19:15 バイエルンストゥーベ飲み会
+19:46-21:30 自宅へ行く</textarea>
+    <div class="row" style="margin-top:8px">
+      <div class="btn primary" id="applyBtn">仮置きする</div>
+      <div class="btn" id="resetBtn">サンプルに戻す</div>
+    </div>
+    <div class="helper">「行く / 駅 / 移動」→ うごく、「飲み / 会食 / 懇親」→ のみくう、それ以外 → はたらく。</div>
+  </div>
+
+  <div class="card">
+    <h2>サマリー</h2>
+    <div class="stats">
+      <div class="stat"><div class="k">ねる</div><div class="v" id="sleepCount">0</div></div>
+      <div class="stat"><div class="k">ゆとり合計</div><div class="v" id="slackCount">0</div></div>
+      <div class="stat"><div class="k">最大連続ゆとり</div><div class="v" id="maxSlack">0</div></div>
+      <div class="stat"><div class="k">読めた件数</div><div class="v" id="parsedCount">0</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>盤面</h2>
+    <div class="board-shell">
+      <div class="labels" id="labels"></div>
+      <div class="board" id="board"></div>
+    </div>
+    <p class="sub">ブロックをタップすると下シートでカテゴリ変更や ±1コマ調整ができます。</p>
+  </div>
+
+  <div class="card">
+    <h2>カテゴリ</h2>
+    <div class="legend">
+      <div class="legend-item"><span class="sw" style="background:var(--sleep)"></span>ねる</div>
+      <div class="legend-item"><span class="sw" style="background:var(--work)"></span>はたらく</div>
+      <div class="legend-item"><span class="sw" style="background:var(--social)"></span>のみくう</div>
+      <div class="legend-item"><span class="sw" style="background:var(--move)"></span>うごく</div>
+      <div class="legend-item"><span class="sw" style="background:var(--live)"></span>くらす</div>
+      <div class="legend-item"><span class="sw" style="background:var(--prep)"></span>しこむ</div>
+      <div class="legend-item"><span class="sw" style="background:var(--buffer)"></span>まだある</div>
+      <div class="legend-item"><span class="sw plain-sw"></span>なにする</div>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <div class="quick-row">
+      <div class="btn current-cat" id="currentCatBtn"></div>
+      <div class="btn primary" id="sleep60Btn">ねる60</div>
+      <div class="btn" id="undoBtn">↶ Undo</div>
+      <div class="btn icon-btn" id="moreBtn">⋯</div>
+    </div>
+    <div class="menu-note">左端でカテゴリ選択 / 低頻度操作は「⋯」へ</div>
+  </div>
+</div>
+
+<div class="sheet hidden" id="editSheet">
+  <div class="sheet-card">
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="sheetTitle">ブロックを編集</div>
+        <div class="sheet-meta" id="sheetMeta">--</div>
+      </div>
+      <div class="tag">選択中</div>
+    </div>
+    <div class="palette-grid" id="sheetPalette"></div>
+    <div class="grow-row">
+      <div class="grow-box">
+        <div class="grow-title">前側を調整</div>
+        <div class="grow-actions">
+          <div class="btn" id="startMinus">-1 コマ</div>
+          <div class="btn" id="startPlus">+1 コマ</div>
+        </div>
+      </div>
+      <div class="grow-box">
+        <div class="grow-title">後側を調整</div>
+        <div class="grow-actions">
+          <div class="btn" id="endMinus">-1 コマ</div>
+          <div class="btn" id="endPlus">+1 コマ</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-grid">
+      <div class="btn" id="toPlain">なにするに戻す</div>
+      <div class="btn" id="toBuffer">まだあるにする</div>
+      <div class="btn" id="splitBlock">ここで分割</div>
+      <div class="btn" id="closeEditSheet">閉じる</div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet hidden" id="paletteSheet">
+  <div class="sheet-card">
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">カテゴリを選ぶ</div>
+        <div class="sheet-meta">現在選択中の色で盤面を塗ります。</div>
+      </div>
+      <div class="tag" id="paletteTag">選択中</div>
+    </div>
+    <div class="palette-grid" id="mainPalette"></div>
+    <div style="margin-top:10px" class="btn" id="closePaletteSheet">閉じる</div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "timescore_v6_state";
+const HOURS=[...Array(24)].map((_,i)=>(i+6)%24);
+const CATS=[["sleep","ねる"],["work","はたらく"],["social","のみくう"],["move","うごく"],["live","くらす"],["prep","しこむ"],["buffer","まだある"],["plain","なにする"]];
+let slots=Array(240).fill("plain");
+let currentCat="work";
+let selectedBlock=null;
+let painting=false;
+let history=[];
+let parsedCount=0;
+let mode="plan";
+
+const labelsEl=document.getElementById("labels"), boardEl=document.getElementById("board"), sheetPaletteEl=document.getElementById("sheetPalette"), mainPaletteEl=document.getElementById("mainPalette"), editSheet=document.getElementById("editSheet"), paletteSheet=document.getElementById("paletteSheet");
+const inputEl = document.getElementById("input");
+const dateInputEl = document.getElementById("dateInput");
+
+function saveHistory(){ history.push(JSON.stringify({slots, parsedCount, currentCat, mode, date:dateInputEl.value, text:inputEl.value})); if(history.length>50) history.shift(); }
+function undo(){ if(!history.length) return; const prev=JSON.parse(history.pop()); restoreStateObject(prev, false); }
+function swatchHTML(key){ return key==="plain" ? `<span class="sw plain-sw"></span>` : `<span class="sw" style="background:var(--${key})"></span>`; }
+function catLabel(cat){ return Object.fromEntries(CATS)[cat]; }
+function updateCurrentCatButton(){ document.getElementById("currentCatBtn").innerHTML=`${swatchHTML(currentCat)} ${catLabel(currentCat)}`; }
+function buildLabels(){ labelsEl.innerHTML=HOURS.map(h=>`<div class="label">${String(h).padStart(2,"0")}</div>`).join(""); }
+function buildPalette(target, activeKey, onPick){
+  target.innerHTML="";
+  for(const [key,label] of CATS){
+    const btn=document.createElement("div");
+    btn.className="cat-btn"+(key===activeKey?" active":"");
+    btn.innerHTML=`${swatchHTML(key)}${label}`;
+    btn.onclick=()=>onPick(key);
+    target.appendChild(btn);
+  }
+}
+function hourForIndex(idx){ return Math.floor(idx/10); }
+function minuteForIndex(idx){ return (idx%10)*6; }
+function formatClockFromBoardIndex(idx){
+  const bh=hourForIndex(idx), rh=HOURS[bh], min=minuteForIndex(idx);
+  return `${String(rh).padStart(2,"0")}:${String(min).padStart(2,"0")}`;
+}
+function findBlock(idx){
+  const cat=slots[idx];
+  let s=idx,e=idx;
+  while(s>0&&slots[s-1]===cat)s--;
+  while(e<239&&slots[e+1]===cat)e++;
+  return {start:s,end:e,cat};
+}
+function renderBoard(){
+  boardEl.innerHTML="";
+  for(let i=0;i<240;i++){
+    const d=document.createElement("div");
+    d.className=`tile ${slots[i]}`;
+    if(selectedBlock&&i>=selectedBlock.start&&i<=selectedBlock.end){
+      d.classList.add("selected");
+      if(i===selectedBlock.start) d.classList.add("sel-start");
+      if(i===selectedBlock.end) d.classList.add("sel-end");
+    }
+    d.dataset.idx=i;
+    d.onpointerdown=(e)=>{
+      saveHistory();
+      painting=true;
+      const idx=Number(e.currentTarget.dataset.idx);
+      slots[idx]=currentCat;
+      selectedBlock=null;
+      renderBoard(); updateSummary(); hideSheets(); persistState();
+    };
+    d.onpointerenter=(e)=>{
+      if(!painting) return;
+      const idx=Number(e.currentTarget.dataset.idx);
+      slots[idx]=currentCat;
+      selectedBlock=null;
+      renderBoard(); updateSummary(); persistState();
+    };
+    d.onclick=(e)=>{
+      if(painting) return;
+      const idx=Number(e.currentTarget.dataset.idx);
+      selectedBlock=findBlock(idx);
+      openEditSheet();
+      renderBoard();
+    };
+    boardEl.appendChild(d);
+  }
+}
+window.addEventListener("pointerup",()=>painting=false);
+
+function updateSummary(){
+  const sleep=slots.filter(x=>x==="sleep").length;
+  const slack=slots.filter(x=>x==="plain"||x==="buffer").length;
+  let maxSlack=0,cur=0;
+  for(const s of slots){ if(s==="plain"||s==="buffer"){ cur++; maxSlack=Math.max(maxSlack,cur);} else cur=0; }
+  document.getElementById("sleepCount").textContent=sleep;
+  document.getElementById("slackCount").textContent=slack;
+  document.getElementById("maxSlack").textContent=maxSlack;
+  document.getElementById("parsedCount").textContent=parsedCount;
+}
+function formatJapaneseDate(ymd){
+  const d = new Date(ymd + "T00:00:00");
+  const w = ["日","月","火","水","木","金","土"][d.getDay()];
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${w}）`;
+}
+function updateDateModeUI(){
+  document.getElementById("dateValue").textContent = formatJapaneseDate(dateInputEl.value);
+  document.getElementById("modeValue").textContent = mode === "plan" ? "予定盤面" : "結果盤面";
+  document.getElementById("planBtn").classList.toggle("active", mode==="plan");
+  document.getElementById("resultBtn").classList.toggle("active", mode==="result");
+}
+function hideSheets(){ editSheet.classList.add("hidden"); paletteSheet.classList.add("hidden"); }
+function openEditSheet(){
+  if(!selectedBlock){ editSheet.classList.add("hidden"); return; }
+  paletteSheet.classList.add("hidden");
+  editSheet.classList.remove("hidden");
+  const {start,end,cat}=selectedBlock;
+  document.getElementById("sheetTitle").textContent=`${catLabel(cat)} を編集`;
+  document.getElementById("sheetMeta").textContent=`${formatClockFromBoardIndex(start)} → ${formatClockFromBoardIndex(end+1)} ・ ${end-start+1}コマ / ${((end-start+1)/10).toFixed(1)}時`;
+  buildPalette(sheetPaletteEl, cat, (key)=>{ saveHistory(); applyCategoryToBlock(selectedBlock,key); });
+}
+function openPaletteSheet(){
+  selectedBlock=null; renderBoard();
+  editSheet.classList.add("hidden");
+  paletteSheet.classList.remove("hidden");
+  document.getElementById("paletteTag").textContent=`現在: ${catLabel(currentCat)}`;
+  buildPalette(mainPaletteEl, currentCat, (key)=>{
+    currentCat=key;
+    updateCurrentCatButton();
+    document.getElementById("paletteTag").textContent=`現在: ${catLabel(currentCat)}`;
+    buildPalette(mainPaletteEl, currentCat, arguments.callee);
+    persistState();
+  });
+}
+function applyCategoryToBlock(block,cat){
+  for(let i=block.start;i<=block.end;i++) slots[i]=cat;
+  selectedBlock={start:block.start,end:block.end,cat};
+  renderBoard(); updateSummary(); openEditSheet(); persistState();
+}
+function adjustStart(delta){
+  if(!selectedBlock) return;
+  saveHistory();
+  let {start,end,cat}=selectedBlock;
+  if(delta<0){ if(start<end){ slots[start]="plain"; start++; } }
+  else { if(start>0){ start--; slots[start]=cat; } }
+  selectedBlock={start,end,cat}; renderBoard(); updateSummary(); openEditSheet(); persistState();
+}
+function adjustEnd(delta){
+  if(!selectedBlock) return;
+  saveHistory();
+  let {start,end,cat}=selectedBlock;
+  if(delta<0){ if(end>start){ slots[end]="plain"; end--; } }
+  else { if(end<239){ end++; slots[end]=cat; } }
+  selectedBlock={start,end,cat}; renderBoard(); updateSummary(); openEditSheet(); persistState();
+}
+function splitBlock(){
+  if(!selectedBlock) return;
+  saveHistory();
+  const {start,end}=selectedBlock; const len=end-start+1; if(len<2) return;
+  const mid=Math.floor((start+end)/2);
+  for(let i=mid+1;i<=end;i++) slots[i]="plain";
+  selectedBlock={start:start,end:mid,cat:slots[start]}; renderBoard(); updateSummary(); openEditSheet(); persistState();
+}
+function placeSleep60(){
+  slots=Array(240).fill("plain");
+  for(let i=160;i<220;i++) slots[i]="sleep";
+}
+function minutesToBoardIndex(minutes){
+  let shifted=minutes-360;
+  if(shifted<0) shifted+=1440;
+  return Math.floor(shifted/6);
+}
+function hhmmToMinutes(text){
+  const m=text.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return null;
+  const h=Number(m[1]), mm=Number(m[2]);
+  if(h<0||h>23||mm<0||mm>59) return null;
+  return h*60+mm;
+}
+function inferCategory(title){
+  if(/行く|移動|駅|→|から|まで/.test(title)) return "move";
+  if(/飲み|会食|懇親/.test(title)) return "social";
+  return "work";
+}
+function parseLines(text){
+  const lines=text.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  let parsed=0;
+  for(const line of lines){
+    const m=line.match(/^(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})\s+(.+)$/);
+    if(!m) continue;
+    const startMin=hhmmToMinutes(m[1]), endMin=hhmmToMinutes(m[2]), title=m[3].trim();
+    if(startMin===null||endMin===null) continue;
+    let s=minutesToBoardIndex(startMin);
+    let eMin=endMin;
+    if(endMin<=startMin) eMin+=1440;
+    let duration=Math.ceil((eMin-startMin)/6);
+    duration=Math.max(duration,1);
+    const cat=inferCategory(title);
+    for(let i=0;i<duration;i++) slots[(s+i)%240]=cat;
+    parsed++;
+  }
+  return parsed;
+}
+function applyText(){
+  saveHistory();
+  placeSleep60();
+  parsedCount=parseLines(inputEl.value);
+  selectedBlock=null;
+  renderBoard(); updateSummary(); hideSheets(); persistState();
+}
+function clearAll(){
+  saveHistory();
+  slots=Array(240).fill("plain");
+  parsedCount=0;
+  selectedBlock=null;
+  renderBoard(); updateSummary(); hideSheets(); persistState();
+}
+function persistState(){
+  const state = {
+    slots, currentCat, parsedCount, mode,
+    date: dateInputEl.value, text: inputEl.value
+  };
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    document.getElementById("saveStatus").textContent = "保存済み";
+  }catch(e){
+    document.getElementById("saveStatus").textContent = "保存失敗";
+  }
+}
+function restoreStateObject(state, saveAfter=true){
+  if(state.slots && Array.isArray(state.slots) && state.slots.length===240) slots=state.slots;
+  if(state.currentCat) currentCat=state.currentCat;
+  if(typeof state.parsedCount==="number") parsedCount=state.parsedCount;
+  if(state.mode) mode=state.mode;
+  if(state.date) dateInputEl.value=state.date;
+  if(typeof state.text==="string") inputEl.value=state.text;
+  selectedBlock=null;
+  updateCurrentCatButton();
+  updateDateModeUI();
+  renderBoard();
+  updateSummary();
+  hideSheets();
+  if(saveAfter) persistState();
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      restoreStateObject(JSON.parse(raw), false);
+      document.getElementById("saveStatus").textContent = "復元済み";
+      return;
+    }
+  }catch(e){}
+  // default initial state
+  updateCurrentCatButton();
+  updateDateModeUI();
+  applyText();
+  history=[];
+}
+
+document.getElementById("applyBtn").onclick=applyText;
+document.getElementById("resetBtn").onclick=()=>{
+  inputEl.value=`07:04-08:36 東京農業大学へ行く
+09:00-11:00 東京農業大学　入学式
+11:03-12:26 船橋駅へ行く
+13:00-17:00 バイエルンストゥーベ 練習
+17:15-19:15 バイエルンストゥーベ飲み会
+19:46-21:30 自宅へ行く`;
+  applyText();
+};
+document.getElementById("currentCatBtn").onclick=openPaletteSheet;
+document.getElementById("sleep60Btn").onclick=()=>{ saveHistory(); placeSleep60(); parsedCount=0; selectedBlock=null; renderBoard(); updateSummary(); hideSheets(); persistState(); };
+document.getElementById("undoBtn").onclick=undo;
+document.getElementById("moreBtn").onclick=()=>{ if(confirm("全消去しますか？")) clearAll(); };
+document.getElementById("closeEditSheet").onclick=()=>{ selectedBlock=null; renderBoard(); hideSheets(); };
+document.getElementById("closePaletteSheet").onclick=hideSheets;
+document.getElementById("toPlain").onclick=()=>{ if(selectedBlock){ saveHistory(); applyCategoryToBlock(selectedBlock,"plain"); } };
+document.getElementById("toBuffer").onclick=()=>{ if(selectedBlock){ saveHistory(); applyCategoryToBlock(selectedBlock,"buffer"); } };
+document.getElementById("splitBlock").onclick=splitBlock;
+document.getElementById("startMinus").onclick=()=>adjustStart(-1);
+document.getElementById("startPlus").onclick=()=>adjustStart(+1);
+document.getElementById("endMinus").onclick=()=>adjustEnd(-1);
+document.getElementById("endPlus").onclick=()=>adjustEnd(+1);
+
+document.getElementById("planBtn").onclick=()=>{ mode="plan"; updateDateModeUI(); persistState(); };
+document.getElementById("resultBtn").onclick=()=>{ mode="result"; updateDateModeUI(); persistState(); };
+dateInputEl.onchange=()=>{ updateDateModeUI(); persistState(); };
+document.getElementById("prevDateBtn").onclick=()=>{
+  const d=new Date(dateInputEl.value+"T00:00:00"); d.setDate(d.getDate()-1);
+  dateInputEl.value = d.toISOString().slice(0,10); updateDateModeUI(); persistState();
+};
+document.getElementById("nextDateBtn").onclick=()=>{
+  const d=new Date(dateInputEl.value+"T00:00:00"); d.setDate(d.getDate()+1);
+  dateInputEl.value = d.toISOString().slice(0,10); updateDateModeUI(); persistState();
+};
+
+inputEl.addEventListener("input", ()=>persistState());
+
+buildLabels();
+loadState();
+history=[];
+</script>
+</body>
+</html>
